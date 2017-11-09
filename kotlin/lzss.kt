@@ -102,13 +102,8 @@ fun expand(data: ByteArray): ByteArray {
     return expanded.copyOf(expandedN)
 }
 
-fun readFile(name: String): ByteArray {
-    return File(name).readBytes()
-}
-
-fun writeFile(name: String, data: ByteArray) {
-    File(name).writeBytes(data)
-}
+fun readFile(name: String): ByteArray = File(name).readBytes()
+fun writeFile(name: String, data: ByteArray) = File(name).writeBytes(data)
 
 fun main(args: Array<String>) {
     if (args.size < 2) {
