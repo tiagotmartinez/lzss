@@ -9,3 +9,6 @@ Each implementation is in its own directory, and has its own compilation / execu
 ### The LZSS Algorithm ###
 
 	TODO
+	
+[1]: https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Storer%E2%80%93Szymanski
+
