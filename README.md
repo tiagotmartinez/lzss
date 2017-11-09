@@ -12,7 +12,7 @@ Each implementation is in its own directory, and has its own compilation / execu
 
 >LZ77 algorithms achieve compression by replacing repeated occurrences of data with references to a single copy of that data existing earlier in the uncompressed data stream. A match is encoded by a pair of numbers called a length-distance pair, which is equivalent to the statement "each of the next length characters is equal to the characters exactly distance characters behind it in the uncompressed stream". (The "distance" is sometimes called the "offset" instead.)
 
-All implementations here limit the offset to 4KiB and the length to 18 bytes, and use similar data structures to speed compression.  This makes search faster, and allow copy codes to fit in 16-bits, with no [entropy encoding][3] step.  A C-like pseudo-code listing of the relevant parts is given below.
+All implementations limit the offset to 4KiB and the length to 18 bytes, this makes search faster, and allow copy codes to fit in 16-bits.  All implementations also use the same data structures to speed match searching.  A C-like pseudo-code listing of the relevant parts is given below.
 
 ```c
 enum {
@@ -21,7 +21,7 @@ enum {
 }
 ```
 
-First, An `offsets` array of `unsigned int` (or equivalent) with the same size as the input `data` stream is computed so that `hash(data[i - offsets[i]]) == hash(data[i])`, where `hash` is defined as `hash(i) = data[i] * 256 + data[i + 1]`.  If no previous match is found, `offsets[i] == 0`.
+First, an `offsets` array of `unsigned int` (or equivalent) with the same size as the input `data` stream is computed so that `hash(data[i - offsets[i]]) == hash(data[i])`, where `hash` is defined as `hash(i) = data[i] * 256 + data[i + 1]`.  If no previous match is found, `offsets[i] == 0`.
 
 ```c
 void link_matches(const unsigned char *data, int ndata, unsigned int *offsets) {
@@ -35,7 +35,7 @@ void link_matches(const unsigned char *data, int ndata, unsigned int *offsets) {
 }
 ```
 
-For each position `j` in data scan all previous ocurrences of the same 2 bytes (following `offsets` as a linked-list) for the longest match to the current compression position `data[i]`.
+For each `data[j]`, scan all previous occurrences of the same 2 bytes for the longest match.  `offsets` is a linked-list of those potential matches.
 
 ```c
 int best_match(const unsigned char *data, int ndata, const unsigned int *offsets, int j, int *bestN, int *bestD) {
@@ -52,7 +52,7 @@ int best_match(const unsigned char *data, int ndata, const unsigned int *offsets
 }
 ```
 
-Compression itself is straightforward.  For each position `i` find the `best_match`, if it is longer than 2 (the size of a *copy* code), output a *code*, otherwise output a *literal*.
+Compression itself is straightforward.  For each position `i` find the `best_match`, if it is longer than 2 (the size of a *copy* code), output a *copy*, otherwise output a *literal*.
 
 ```c
 void compress(const unsigned char *data, int ndata) {
@@ -70,13 +70,16 @@ void compress(const unsigned char *data, int ndata) {
 }
 ```
 
-Not all implementations are exactly the same, but most include `link_matches`. `best_match` and `compress` functions.  Also, all implementations define the `expand` function that reverse compression.
+Not all implementations are exactly the same, but most include `link_matches`. `best_match` and `compress` functions.  Also, all implementations define a `expand` function that reverse compression.
 
 ### Compressed Stream Format ###
 
 The compressed stream is broken in *blocks* which are sequences of exactly 8 *codes*.  Each code is either a *copy* (length-distance pair) or a *literal* (a single byte directly from input `data`).  Each block starts with a single byte *header* field that works as a directory for what is a copy and what is a literal in the block.  If the code index `n` (range 0..7) in the block is a literal, the same bit on the header field will be non-zero (from left to right).  In code: `is_literal(n) = ((header & (0x80 >> n)) != 0)`.
 
-In general, the implementations here cache the current block in a 17-byte `blk` array (1 byte header + at most 2 byte * 8 codes) and when 8 codes have been written to this array, it is flushed to a dynamically allocated `compressed` array.  In some cases the block could be written directly to the `compressed` array, but the implementation is cleaner this way.
+In general, the implementations cache the current block in a 17-byte `blk` array (1 byte header + at most 2 byte * 8 codes) and when 8 codes have been written to this array, it is flushed to a dynamically allocated `compressed` array.  In some cases the block could be written directly to the `compressed` array, but the implementation is cleaner this way.
+
+No meta-data or error checking information is generated, this is not meant as a practical compression / archiver tool!
+
 
 
 [1]: https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Storer%E2%80%93Szymanski
