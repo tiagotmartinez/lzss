@@ -18,6 +18,7 @@ All implementations here limit the offset to 4KiB and the length to 18 bytes, an
 enum {
 	MAX_DISTANCE = 4095 + 1,	/* (distance - 1) can be encoded in 12 bits */
 	MAX_LENGTH = 15 + 3,		/* (length - 3) can be encoded in 4 bits */
+}
 ```
 
 First, An `offsets` array of `unsigned int` (or equivalent) with the same size as the input `data` stream is computed so that `hash(data[i - offsets[i]]) == hash(data[i])`, where `hash` is defined as `hash(i) = data[i] * 256 + data[i + 1]`.  If no previous match is found, `offsets[i] == 0`.
