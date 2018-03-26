@@ -51,7 +51,7 @@ Buffer compress(const Buffer & data) {
     auto offsets = link_matches(data);
     Buffer compressed;
     
-    uint8_t blk[17];
+    uint8_t blk[17] = { 0 };
     int blkI = 1;
     int blkN = 0;
     
