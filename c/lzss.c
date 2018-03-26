@@ -86,6 +86,53 @@ size_t compress(const uint8_t *data, size_t ndata, FILE *output) {
     return noutput;
 }
 
+uint8_t *expand(const uint8_t *data, size_t ndata, size_t *noutput) {
+    if (ndata == 0) return NULL;
+    
+    uint8_t *output = malloc(ndata);
+    size_t nout = 0, capout = ndata;
+    
+    uint8_t blk = 0;
+    size_t blkN = 8;
+    
+    for (size_t j = 0; j < ndata;) {
+        if (++blkN >= 8) {
+            blk = data[j++];
+            blkN = 0;
+        }
+        
+        if (blk & (0x80 >> blkN)) {
+            if (nout == capout) {
+                capout *= 2;
+                output = realloc(output, capout);
+                assert(output);
+            }
+            
+            output[nout++] = data[j++];
+        } else {
+            assert( j + 1 < ndata );
+            size_t n = (data[j] / 16) + 3;
+            ptrdiff_t d = (data[j] % 16) * 256 + data[j + 1] + 1;
+
+            if (nout + n >= capout) {
+                while (nout + n >= capout) capout *= 2;
+                output = realloc(output, capout);
+                assert(output);
+            }
+            
+            while (n-- > 0) {
+                output[nout] = output[nout - d];
+                nout++;
+            }
+            
+            j += 2;
+        }
+    }
+    
+    *noutput = nout;
+    return realloc(output, nout);
+}
+
 uint8_t *read_file(const char *name, size_t *size) {
     FILE *f = fopen(name, "rb");
     if (!f) return NULL;
@@ -109,23 +156,47 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    size_t ndata = 0;
-    uint8_t *data = read_file(argv[1], &ndata);
-    if (!data) {
-        fprintf(stderr, "lzss: error reading \"%s\".\n", argv[1]);
-        return 2;
+    if (strcmp(argv[1], "-e") == 0) {
+        size_t ndata = 0;
+        uint8_t *data = read_file(argv[2], &ndata);
+        if (!data) {
+            fprintf(stderr, "lzss: error reading \"%s\".\n", argv[1]);
+            return 2;
+        }
+        
+        size_t noutput = 0;
+        uint8_t *output = expand(data, ndata, &noutput);
+        
+        FILE *fout = fopen(argv[3], "wb");
+        if (!fout) {
+            fprintf(stderr, "lzss: error creating \"%s\".\n", argv[2]);
+            return 3;
+        }
+        
+        fwrite(output, 1, noutput, fout);
+        
+        fclose(fout);
+        free(data);
+        free(output);
+    } else {
+        size_t ndata = 0;
+        uint8_t *data = read_file(argv[1], &ndata);
+        if (!data) {
+            fprintf(stderr, "lzss: error reading \"%s\".\n", argv[1]);
+            return 2;
+        }
+        
+        FILE *output = fopen(argv[2], "wb");
+        if (!output) {
+            fprintf(stderr, "lzss: error creating \"%s\".\n", argv[2]);
+            return 3;
+        }
+        
+        compress(data, ndata, output);
+        
+        fclose(output);
+        free(data);
     }
-    
-    FILE *output = fopen(argv[2], "wb");
-    if (!output) {
-        fprintf(stderr, "lzss: error creating \"%s\".\n", argv[2]);
-        return 3;
-    }
-    
-    compress(data, ndata, output);
-    
-    fclose(output);
-    free(data);
     
     return EXIT_SUCCESS;
 }
