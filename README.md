@@ -10,7 +10,7 @@ Each implementation is in its own directory, and has its own compilation / execu
 
 [LZSS][1] is a version of [LZ77][2]:
 
->LZ77 algorithms achieve compression by replacing repeated occurrences of data with references to a single copy of that data existing earlier in the uncompressed data stream. A match is encoded by a pair of numbers called a length-distance pair, which is equivalent to the statement "each of the next length characters is equal to the characters exactly distance characters behind it in the uncompressed stream". (The "distance" is sometimes called the "offset" instead.)
+>"LZ77 algorithms achieve compression by replacing repeated occurrences of data with references to a single copy of that data existing earlier in the uncompressed data stream. A match is encoded by a pair of numbers called a length-distance pair, which is equivalent to the statement "each of the next length characters is equal to the characters exactly distance characters behind it in the uncompressed stream". (The "distance" is sometimes called the "offset" instead.)
 
 All implementations limit the offset to 4KiB and the length to 18 bytes, this makes search faster, and allow copy codes to fit in 16-bits.  All implementations also use the same data structures to speed match searching.  A C-like pseudo-code listing of the relevant parts is given below.
 
